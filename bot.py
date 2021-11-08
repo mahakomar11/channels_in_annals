@@ -13,7 +13,7 @@ help_button = types.KeyboardButton(text='Инструкция')
 list_button = types.KeyboardButton(text='Список каналов')
 search_button = types.KeyboardButton(text='Поиск по названию')
 keyboard.add(help_button, list_button, search_button)
-mode = 0
+IS_SEARCH_MODE = False
 
 
 @bot.message_handler(commands=['start'])
@@ -50,11 +50,11 @@ def get_message(message):
         bot.send_message(user_id, display_channels(user_id), reply_markup=inline_keyboard)
     elif message.text == 'Поиск по названию':
         bot.send_message(user_id, 'Напиши ключевое слово')
-        global mode
-        mode = 1
-    elif mode == 1:
+        global IS_SEARCH_MODE
+        IS_SEARCH_MODE = True
+    elif IS_SEARCH_MODE:
         bot.send_message(user_id, search_channels(user_id, message.text))
-        mode = 0
+        IS_SEARCH_MODE = False
     elif message.forward_from_chat is None:
         bot.send_message(user_id, 'Сообщение должно быть переслано из канала.',
                          reply_markup=keyboard)
