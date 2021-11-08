@@ -1,19 +1,17 @@
-from difflib import SequenceMatcher
 import json
+import re
 
 
-def get_most_similar(word, names, num_of_best=None):
-    if num_of_best is None:
-        num_of_best = len(names)
+def get_matched(word, names):
+    regex = re.compile(word.lower())
 
-    similarities = {}
+    matched = []
     for name in names:
-        sm = SequenceMatcher(a=word.lower(), b=name.lower())
-        similarities[name] = sm.quick_ratio()
-
-    result = sorted(similarities.items(), key=lambda item: item[1], reverse=True)[:num_of_best]
-    return [res[0] for res in result]
-
+        match = regex.search(name.lower())
+        if match is not None:
+            matched.append(name)
+    return matched
+            
 
 if __name__ == '__main__':
     user_id = 99649314
@@ -23,7 +21,7 @@ if __name__ == '__main__':
     channels = users_channels[str(user_id)]
     chan_names = channels.keys()
 
-    word = 'диета'
+    word = 'диет'
 
-    result = get_most_similar(word, chan_names)
-    print(result)
+    matched = get_matched(word, chan_names)
+    print(matched)
