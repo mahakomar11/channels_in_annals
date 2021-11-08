@@ -2,7 +2,7 @@ import telebot
 from telebot import types
 import json
 from collections import OrderedDict
-from searcher import get_most_similar
+from searcher import get_matched
 from decouple import config
 
 
@@ -91,7 +91,7 @@ def display_channels(user_id, to_sort=False):
 
 def search_channels(user_id, text):
     channels = _read_channels(user_id)
-    chan_names = get_most_similar(text, channels.keys(), num_of_best=3)
+    chan_names = get_matched(text, channels.keys())
     found_channels = {name: channels[name] for name in chan_names}
     print(found_channels)
     return _create_message_from_channels(found_channels)
