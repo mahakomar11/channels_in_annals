@@ -8,13 +8,13 @@ from decouple import config
 
 bot = telebot.TeleBot(config('TOKEN'))
 
+my_commands = ['Инструкция', 'Список каналов', 'Поиск по названию', 'Удалить канал']
+buttons = [types.KeyboardButton(text=command) for command in my_commands]
 keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-help_button = types.KeyboardButton(text='Инструкция')
-list_button = types.KeyboardButton(text='Список каналов')
-search_button = types.KeyboardButton(text='Поиск по названию')
-keyboard.add(help_button, list_button, search_button)
-IS_SEARCH_MODE = False
+keyboard.add(*buttons)
 
+IS_SEARCH_MODE = False
+LAST_MESSAGE = None
 
 @bot.message_handler(commands=['start'])
 def handle_command(message):
@@ -34,6 +34,8 @@ def handle_command(message):
                                     'voice'])
 def get_message(message):
     user_id = message.from_user.id
+    global IS_SEARCH_MODE
+    global LAST_MESSAGE
     if message.text == 'Инструкция':
         bot.send_message(user_id, 'Перешли мне сообщение из канала и '
                                   'я сохраню на него ссылку. '
@@ -50,10 +52,22 @@ def get_message(message):
         bot.send_message(user_id, display_channels(user_id), reply_markup=inline_keyboard)
     elif message.text == 'Поиск по названию':
         bot.send_message(user_id, 'Напиши ключевое слово')
-        global IS_SEARCH_MODE
         IS_SEARCH_MODE = True
-    elif IS_SEARCH_MODE:
+    elif message.text == 'Удалить канал':
+        bot.send_message(user_id, 'Напиши ключевое слово')
+        IS_SEARCH_MODE = True
+    elif IS_SEARCH_MODE and LAST_MESSAGE == 'Поиск по названию':
         bot.send_message(user_id, search_channels(user_id, message.text))
+        IS_SEARCH_MODE = False
+    elif IS_SEARCH_MODE and LAST_MESSAGE == 'Удалить канал':
+        inline_keyboard = types.InlineKeyboardMarkup()
+        button_yes = types.InlineKeyboardButton(text='Да',
+                                                callback_data=message.text)
+        button_no = types.InlineKeyboardButton(text='Нет',
+                                               callback_data='no')
+        inline_keyboard.add(button_yes, button_no)
+        bot.send_message(user_id, search_channels(user_id, message.text, max=1))
+        bot.send_message(user_id, 'Удалить этот канал?', reply_markup=inline_keyboard)
         IS_SEARCH_MODE = False
     elif message.forward_from_chat is None:
         bot.send_message(user_id, 'Сообщение должно быть переслано из канала.',
@@ -62,14 +76,19 @@ def get_message(message):
         # bot.send_message(user_id, message.forward_from_chat)  # technical message
         answer = add_channel(user_id, message.forward_from_chat)
         bot.send_message(user_id, answer, reply_markup=keyboard)
-
+    LAST_MESSAGE = message.text
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
+    user_id = call.message.chat.id
     if call.data == 'sort':
-        user_id = call.message.chat.id
         answer = display_channels(user_id, to_sort=True)
         bot.send_message(user_id, answer)
+    elif call.data == 'no':
+        bot.send_message(user_id, 'Нет так нет.')
+    elif isinstance(call.data, str):
+        delete_matched_channel(user_id, call.data)
+        bot.send_message(user_id, 'Удалил!')
 
 
 def add_channel(user_id, chat):
@@ -89,12 +108,21 @@ def display_channels(user_id, to_sort=False):
     return _create_message_from_channels(channels)
 
 
-def search_channels(user_id, text):
+def search_channels(user_id, text, max=None):
     channels = _read_channels(user_id)
     chan_names = get_matched(text, channels.keys())
+    if max is not None:
+        chan_names = chan_names[:1]
     found_channels = {name: channels[name] for name in chan_names}
-    print(found_channels)
     return _create_message_from_channels(found_channels)
+
+
+def delete_matched_channel(user_id, text):
+    channels = _read_channels(user_id)
+    chan_name = get_matched(text, channels.keys())[0]
+    del channels[chan_name]
+    with open('channels.json', 'w') as f:
+        json.dump({user_id: channels}, f)
 
 
 def _create_message_from_channels(channels):
@@ -125,7 +153,6 @@ bot.polling(none_stop=True, interval=0)
 
 # TODO: добавление канала вручную
 # TODO: удаление канала/ов
-# TODO: сделать нормальный поиск
 # TODO: подключить бд
 # TODO: залить на сервер
 
