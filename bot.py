@@ -8,7 +8,7 @@ from decouple import config
 
 bot = telebot.TeleBot(config('TOKEN'))
 
-my_commands = ['Инструкция', 'Список каналов', 'Поиск по названию', 'Удалить канал']
+my_commands = ['Инструкция', 'Список каналов', 'Поиск по названию', 'Удалить канал', 'Удалить все каналы']
 buttons = [types.KeyboardButton(text=command) for command in my_commands]
 keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
 keyboard.add(*buttons)
@@ -56,6 +56,11 @@ def get_message(message):
     elif message.text == 'Удалить канал':
         bot.send_message(user_id, 'Напиши ключевое слово')
         IS_SEARCH_MODE = True
+    elif message.text == 'Удалить все каналы' and LAST_MESSAGE != 'Удалить все каналы':
+        bot.send_message(user_id, 'Каналы нельзя будет вернуть. Чтобы подтвердить удаление всех-всех каналов, нажми "Удалить все каналы" ещё раз')
+    elif message.text == 'Удалить все каналы' and LAST_MESSAGE == 'Удалить все каналы':
+        delete_all_channels(user_id)
+        bot.send_message(user_id, 'Список каналов пуст.')
     elif IS_SEARCH_MODE and LAST_MESSAGE == 'Поиск по названию':
         bot.send_message(user_id, search_channels(user_id, message.text))
         IS_SEARCH_MODE = False
@@ -125,6 +130,11 @@ def delete_matched_channel(user_id, text):
         json.dump({user_id: channels}, f)
 
 
+def delete_all_channels(user_id):
+    with open('channels.json', 'w') as f:
+        json.dump({user_id: {}}, f)
+
+
 def _create_message_from_channels(channels):
     if len(channels) == 0:
         return 'Каналы не добавлены! Чтобы добавить канал, перешли мне сообщение из него.'
@@ -152,7 +162,6 @@ def _write_channels(user_id, channels):
 bot.polling(none_stop=True, interval=0)
 
 # TODO: добавление канала вручную
-# TODO: удаление канала/ов
 # TODO: подключить бд
 # TODO: залить на сервер
 
