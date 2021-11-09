@@ -1,3 +1,4 @@
+from re import T
 import telebot
 from telebot import types
 import json
@@ -8,7 +9,7 @@ from decouple import config
 
 bot = telebot.TeleBot(config('TOKEN'))
 
-my_commands = ['Инструкция', 'Список каналов', 'Поиск по названию', 'Удалить канал', 'Удалить все каналы']
+my_commands = ['Инструкция', 'Список каналов', 'Поиск по названию', 'Добавить канал вручную', 'Удалить канал', 'Удалить все каналы']
 buttons = [types.KeyboardButton(text=command) for command in my_commands]
 keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
 keyboard.add(*buttons)
@@ -53,6 +54,9 @@ def get_message(message):
     elif message.text == 'Поиск по названию':
         bot.send_message(user_id, 'Напиши ключевое слово')
         IS_SEARCH_MODE = True
+    elif message.text == 'Добавить канал вручную':
+        bot.send_message(user_id, 'Пришли мне ссылку на канал')
+        IS_SEARCH_MODE = True
     elif message.text == 'Удалить канал':
         bot.send_message(user_id, 'Напиши ключевое слово')
         IS_SEARCH_MODE = True
@@ -63,6 +67,10 @@ def get_message(message):
         bot.send_message(user_id, 'Список каналов пуст.')
     elif IS_SEARCH_MODE and LAST_MESSAGE == 'Поиск по названию':
         bot.send_message(user_id, search_channels(user_id, message.text))
+        IS_SEARCH_MODE = False
+    elif IS_SEARCH_MODE and LAST_MESSAGE == 'Добавить канал вручную':
+        # TODO: обработать случаи, когда это не ссылка
+        bot.send_message(user_id, add_channel_by_link(user_id, message.text))
         IS_SEARCH_MODE = False
     elif IS_SEARCH_MODE and LAST_MESSAGE == 'Удалить канал':
         inline_keyboard = types.InlineKeyboardMarkup()
@@ -105,6 +113,13 @@ def add_channel(user_id, chat):
         _write_channels(user_id, channels)
         return f'Добавлен канал {chat.title}!'
 
+def add_channel_by_link(user_id, link):
+    channels = _read_channels(user_id)
+    channel_id = '@' + link.split('/')[-1]
+    channel_info = bot.get_chat(channel_id)
+    channels[channel_info.title] = link
+    _write_channels(user_id, channels)
+    return f'Добавлен канал {channel_info.title}!'
 
 def display_channels(user_id, to_sort=False):
     channels = _read_channels(user_id)
@@ -161,7 +176,7 @@ def _write_channels(user_id, channels):
 
 bot.polling(none_stop=True, interval=0)
 
-# TODO: добавление канала вручную
+# TODO: обернуть операции с каналами в класс
 # TODO: подключить бд
 # TODO: залить на сервер
 
