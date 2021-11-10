@@ -1,6 +1,7 @@
 from re import T
 import telebot
 from telebot import types
+from telebot.apihelper import ApiTelegramException
 import json
 from collections import OrderedDict
 from searcher import get_matched
@@ -69,7 +70,6 @@ def get_message(message):
         bot.send_message(user_id, search_channels(user_id, message.text))
         IS_SEARCH_MODE = False
     elif IS_SEARCH_MODE and LAST_MESSAGE == 'Добавить канал вручную':
-        # TODO: обработать случаи, когда это не ссылка
         bot.send_message(user_id, add_channel_by_link(user_id, message.text))
         IS_SEARCH_MODE = False
     elif IS_SEARCH_MODE and LAST_MESSAGE == 'Удалить канал':
@@ -79,8 +79,10 @@ def get_message(message):
         button_no = types.InlineKeyboardButton(text='Нет',
                                                callback_data='no')
         inline_keyboard.add(button_yes, button_no)
+        answer = search_channels(user_id, message.text, max=1)
         bot.send_message(user_id, search_channels(user_id, message.text, max=1))
-        bot.send_message(user_id, 'Удалить этот канал?', reply_markup=inline_keyboard)
+        if answer != 'Таких каналов не найдено, попробуй другое слово.':
+            bot.send_message(user_id, 'Удалить этот канал?', reply_markup=inline_keyboard)
         IS_SEARCH_MODE = False
     elif message.forward_from_chat is None:
         bot.send_message(user_id, 'Сообщение должно быть переслано из канала.',
@@ -113,13 +115,29 @@ def add_channel(user_id, chat):
         _write_channels(user_id, channels)
         return f'Добавлен канал {chat.title}!'
 
-def add_channel_by_link(user_id, link):
+def add_channel_by_link(user_id, message):
     channels = _read_channels(user_id)
-    channel_id = '@' + link.split('/')[-1]
-    channel_info = bot.get_chat(channel_id)
-    channels[channel_info.title] = link
+    link = message.split(' ')[-1]
+    if 't.me/' not in link:
+        return 'Не вижу ссылки. Должна быть либо ссылка, либо "Название ссылка", через пробел.'
+    if link != message:
+        title = ' '.join(message.split(' ')[:-1])
+    else:
+        channel_id = '@' + link.split('/')[-1]
+        try:
+            channel_info = bot.get_chat(channel_id)
+        except ApiTelegramException as e:
+            return 'Не могу достать название, вероятно канал засекречен. Нажми "Добавить канал вручную" и пришли "Название ссылка", через пробел.'
+        title = channel_info.title
+    channels[title] = link
     _write_channels(user_id, channels)
-    return f'Добавлен канал {channel_info.title}!'
+    return f'Добавлен канал {title}!'
+
+def add_channel_with_title(user_id, title, link):
+    channels = _read_channels(user_id)
+    channels[title] = link
+    _write_channels(user_id, channels)
+    return f'Добавлен канал {title}!'
 
 def display_channels(user_id, to_sort=False):
     channels = _read_channels(user_id)
@@ -134,7 +152,7 @@ def search_channels(user_id, text, max=None):
     if max is not None:
         chan_names = chan_names[:1]
     found_channels = {name: channels[name] for name in chan_names}
-    return _create_message_from_channels(found_channels)
+    return _create_message_from_channels(found_channels, no_channels_message='Таких каналов не найдено, попробуй другое слово.')
 
 
 def delete_matched_channel(user_id, text):
@@ -150,9 +168,11 @@ def delete_all_channels(user_id):
         json.dump({user_id: {}}, f)
 
 
-def _create_message_from_channels(channels):
+def _create_message_from_channels(channels, no_channels_message=None):
+    if no_channels_message is None:
+        no_channels_message = 'Каналы не добавлены! Чтобы добавить канал, перешли мне сообщение из него.'
     if len(channels) == 0:
-        return 'Каналы не добавлены! Чтобы добавить канал, перешли мне сообщение из него.'
+        return no_channels_message
     channels_list = [f'{title}:\n\t\t\t\t\t\t\t\t\t{link}' for title, link in channels.items()]
     return '\n'.join(channels_list)
 
@@ -179,6 +199,8 @@ bot.polling(none_stop=True, interval=0)
 # TODO: обернуть операции с каналами в класс
 # TODO: подключить бд
 # TODO: залить на сервер
+# TODO: добавить логирование
+# TODO: доставать из ссылки название или из пересланного сообщения ссылку
 
 
 
