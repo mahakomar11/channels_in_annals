@@ -19,8 +19,8 @@ LAST_MESSAGE = None
 
 @bot.message_handler(commands=['start'])
 def handle_command(message):
-    user_id = message.from_user.id
     if message.text == '/start':
+        user_id = message.from_user.id
         bot.send_message(user_id, 'Привет, я — бот "Каналы в анналах".\n\n'
                                   'Я сделан, чтобы помогать Маше меньше прокрастинировать.\n\n'
                                   'Перешли мне свои каналы, и я их сохраню. '
@@ -28,6 +28,7 @@ def handle_command(message):
                                   'чтобы отвлекаться на них, только когда напишешь мне. '
                                   'Чтобы узнать как пользоваться, жми "Инструкция".',
                          reply_markup=keyboard)
+        _write_channels(user_id, {})
 
 
 @bot.message_handler(content_types=['text', 'photo', 'video',
@@ -151,13 +152,11 @@ def delete_matched_channel(user_id, text):
     channels = _read_channels(user_id)
     chan_name = get_matched(text, channels.keys())[0]
     del channels[chan_name]
-    with open('channels.json', 'w') as f:
-        json.dump({user_id: channels}, f)
+    _write_channels(user_id, channels)
 
 
 def delete_all_channels(user_id):
-    with open('channels.json', 'w') as f:
-        json.dump({user_id: {}}, f)
+    _write_channels(user_id, {})
 
 
 def _create_message_from_channels(channels, no_channels_message=None):
@@ -181,13 +180,16 @@ def _read_channels(user_id):
 def _write_channels(user_id, channels):
     with open('channels.json', 'r+') as f:
         users_channels = json.load(f)
-        users_channels[user_id] = channels
+        users_channels[str(user_id)] = channels
+        print(users_channels)
         f.seek(0)
         json.dump(users_channels, f)
+        f.truncate()
 
 
 bot.polling(none_stop=True, interval=0)
 
+# TODO: хранить LAST_MESSAGE в json
 # TODO: обернуть операции с каналами в класс
 # TODO: подключить бд
 # TODO: залить на сервер
