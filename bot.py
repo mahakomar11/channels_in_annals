@@ -2,6 +2,7 @@ import telebot
 from telebot import types
 from decouple import config
 from handler import UserDataHandler
+from utils import create_inline_keyboard
 
 
 bot = telebot.TeleBot(config("TOKEN"))
@@ -51,91 +52,65 @@ def get_message(message):
     user_id = message.from_user.id
     user_data_handler = UserDataHandler(user_id)
     last_message = user_data_handler.read_last_message()
+    reply_markup = keyboard
 
     if message.text == "Инструкция":
-        bot.send_message(
-            user_id,
+        answer = (
             "Перешли мне сообщение из канала и "
             "я сохраню на него ссылку. "
             "Важно: сообщение не должно быть репостом — бот достаёт "
             "автора оригинального сообщения.\n\n"
             "Чтобы получить список "
-            'своих каналов, нажми "Список каналов".',
-            reply_markup=keyboard,
-        )
-    elif message.text == "Список каналов":
-        inline_keyboard = types.InlineKeyboardMarkup()
-        button_sort = types.InlineKeyboardButton(
-            text="Сортировать по алфавиту", callback_data="sort"
-        )
-        inline_keyboard.add(button_sort)
-
-        bot.send_message(
-            user_id,
-            user_data_handler.display_channels(user_id),
-            reply_markup=inline_keyboard,
+            'своих каналов, нажми "Список каналов".'
         )
     elif message.text == "Поиск по названию":
-        bot.send_message(user_id, "Напиши ключевое слово")
+        answer = "Напиши ключевое слово"
     elif message.text == "Добавить канал вручную":
-        bot.send_message(user_id, "Пришли мне ссылку на канал")
+        answer = "Пришли мне ссылку на канал"
     elif message.text == "Удалить канал":
-        bot.send_message(user_id, "Напиши ключевое слово")
+        answer = "Напиши ключевое слово"
+    elif message.text == "Список каналов":
+        answer = user_data_handler.display_channels()
+        reply_markup = create_inline_keyboard(
+            {"Сортировать по алфавиту": "sort"}
+        )
     elif (
         message.text == "Удалить все каналы"
         and last_message != "Удалить все каналы"
     ):
-        bot.send_message(
-            user_id,
+        answer = (
             "Каналы нельзя будет вернуть. Чтобы подтвердить удаление всех-всех"
-            ' каналов, нажми "Удалить все каналы" ещё раз',
+            ' каналов, нажми "Удалить все каналы" ещё раз'
         )
     elif (
         message.text == "Удалить все каналы"
         and last_message == "Удалить все каналы"
     ):
         user_data_handler.delete_all_channels()
-        bot.send_message(user_id, "Список каналов пуст.")
+        answer = "Список каналов пуст."
     elif last_message == "Поиск по названию":
-        bot.send_message(
-            user_id, user_data_handler.search_channels(message.text)
-        )
+        answer = user_data_handler.search_channels(message.text)
     elif last_message == "Добавить канал вручную":
-        bot.send_message(
-            user_id, user_data_handler.add_channel_by_link(message.text, bot)
-        )
+        answer = user_data_handler.add_channel_by_link(message.text, bot)
     elif last_message == "Удалить канал":
-        inline_keyboard = types.InlineKeyboardMarkup()
-        button_yes = types.InlineKeyboardButton(
-            text="Да", callback_data=message.text
-        )
-        button_no = types.InlineKeyboardButton(text="Нет", callback_data="no")
-        inline_keyboard.add(button_yes, button_no)
-
         answer = user_data_handler.search_channels(message.text, max_num=1)
-        bot.send_message(user_id, answer)
         if answer != "Таких каналов не найдено, попробуй другое слово.":
-            bot.send_message(
-                user_id, "Удалить этот канал?", reply_markup=inline_keyboard
+            answer = "Удалить этот канал?" + "\n\n" + answer
+            reply_markup = create_inline_keyboard(
+                {"Да": message.text, "Нет": "no"}
             )
     elif message.forward_from_chat is None:
-        bot.send_message(
-            user_id,
-            "Сообщение должно быть переслано из канала.",
-            reply_markup=keyboard,
-        )
+        answer = "Сообщение должно быть переслано из канала."
     else:
-        # technical message
-        # bot.send_message(user_id, message.forward_from_chat)
         answer = user_data_handler.add_channel(message.forward_from_chat)
-        bot.send_message(user_id, answer, reply_markup=keyboard)
 
-    if message.text is None or len(message.text) > 30:
-        new_last_message = ""
+    if message.text not in my_commands:
+        last_message = ""
     else:
-        new_last_message = message.text
+        last_message = message.text
 
-    user_data_handler.write_last_message(new_last_message)
+    bot.send_message(user_id, answer, reply_markup=reply_markup)
+    user_data_handler.write_last_message(last_message)
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -144,17 +119,16 @@ def callback_inline(call):
     user_data_handler = UserDataHandler(user_id)
     if call.data == "sort":
         answer = user_data_handler.display_channels(to_sort=True)
-        bot.send_message(user_id, answer)
     elif call.data == "no":
-        bot.send_message(user_id, "Нет так нет.")
+        answer = "Нет так нет."
     elif isinstance(call.data, str):
         user_data_handler.delete_matched_channel(call.data)
-        bot.send_message(user_id, "Удалил!")
+        answer = "Удалил!"
+    bot.send_message(user_id, answer)
 
 
 bot.polling(none_stop=True, interval=0)
 
-# TODO: порефакторить
 # TODO: подключить бд
 # TODO: залить на сервер
 # TODO: добавить логирование
