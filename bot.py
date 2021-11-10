@@ -15,8 +15,6 @@ buttons = [types.KeyboardButton(text=command) for command in my_commands]
 keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
 keyboard.add(*buttons)
 
-LAST_MESSAGE = None
-
 @bot.message_handler(commands=['start'])
 def handle_command(message):
     if message.text == '/start':
@@ -36,7 +34,7 @@ def handle_command(message):
                                     'voice'])
 def get_message(message):
     user_id = message.from_user.id
-    global LAST_MESSAGE
+    last_message = _read_last_message(user_id)
     if message.text == 'Инструкция':
         bot.send_message(user_id, 'Перешли мне сообщение из канала и '
                                   'я сохраню на него ссылку. '
@@ -57,16 +55,16 @@ def get_message(message):
         bot.send_message(user_id, 'Пришли мне ссылку на канал')
     elif message.text == 'Удалить канал':
         bot.send_message(user_id, 'Напиши ключевое слово')
-    elif message.text == 'Удалить все каналы' and LAST_MESSAGE != 'Удалить все каналы':
+    elif message.text == 'Удалить все каналы' and last_message != 'Удалить все каналы':
         bot.send_message(user_id, 'Каналы нельзя будет вернуть. Чтобы подтвердить удаление всех-всех каналов, нажми "Удалить все каналы" ещё раз')
-    elif message.text == 'Удалить все каналы' and LAST_MESSAGE == 'Удалить все каналы':
+    elif message.text == 'Удалить все каналы' and last_message == 'Удалить все каналы':
         delete_all_channels(user_id)
         bot.send_message(user_id, 'Список каналов пуст.')
-    elif LAST_MESSAGE == 'Поиск по названию':
+    elif last_message == 'Поиск по названию':
         bot.send_message(user_id, search_channels(user_id, message.text))
-    elif LAST_MESSAGE == 'Добавить канал вручную':
+    elif last_message == 'Добавить канал вручную':
         bot.send_message(user_id, add_channel_by_link(user_id, message.text))
-    elif LAST_MESSAGE == 'Удалить канал':
+    elif last_message == 'Удалить канал':
         inline_keyboard = types.InlineKeyboardMarkup()
         button_yes = types.InlineKeyboardButton(text='Да',
                                                 callback_data=message.text)
@@ -84,7 +82,7 @@ def get_message(message):
         # bot.send_message(user_id, message.forward_from_chat)  # technical message
         answer = add_channel(user_id, message.forward_from_chat)
         bot.send_message(user_id, answer, reply_markup=keyboard)
-    LAST_MESSAGE = message.text
+    _write_last_message(user_id, message.text)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
@@ -168,11 +166,19 @@ def _create_message_from_channels(channels, no_channels_message=None):
     return '\n'.join(channels_list)
 
 
+def _read_last_message(user_id):
+    with open('channels.json') as f:
+        users_channels = json.load(f)
+    if len(users_channels) != 0:
+        return users_channels[str(user_id)]['last_message']
+    else:
+        return None
+
 def _read_channels(user_id):
     with open('channels.json') as f:
         users_channels = json.load(f)
     if len(users_channels) != 0:
-        return users_channels[str(user_id)]
+        return users_channels[str(user_id)]['channels']
     else:
         return {}
 
@@ -180,8 +186,19 @@ def _read_channels(user_id):
 def _write_channels(user_id, channels):
     with open('channels.json', 'r+') as f:
         users_channels = json.load(f)
-        users_channels[str(user_id)] = channels
-        print(users_channels)
+        if str(user_id) not in users_channels:
+            users_channels[str(user_id)] = {'channels': {}, 'last_message': '/start'}
+        
+        users_channels[str(user_id)]['channels'] = channels
+        f.seek(0)
+        json.dump(users_channels, f)
+        f.truncate()
+
+
+def _write_last_message(user_id, last_message):
+    with open('channels.json', 'r+') as f:
+        users_channels = json.load(f)
+        users_channels[str(user_id)]['last_message'] = last_message
         f.seek(0)
         json.dump(users_channels, f)
         f.truncate()
@@ -189,7 +206,6 @@ def _write_channels(user_id, channels):
 
 bot.polling(none_stop=True, interval=0)
 
-# TODO: хранить LAST_MESSAGE в json
 # TODO: обернуть операции с каналами в класс
 # TODO: подключить бд
 # TODO: залить на сервер
