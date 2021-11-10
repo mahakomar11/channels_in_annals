@@ -1,10 +1,10 @@
 import json
 from collections import OrderedDict
 from telebot.apihelper import ApiTelegramException
-from searcher import get_matched
+from utils import get_matched
 
 
-class UserDataHandler(object):
+class UserDataHandler:
     def __init__(self, user_id) -> None:
         self.user_id = str(user_id)
 
@@ -74,9 +74,9 @@ class UserDataHandler(object):
             ),
         )
 
-    def delete_matched_channel(self, text) -> None:
+    def delete_matched_channel(self, keyword) -> None:
         channels = self._read_channels()
-        chan_name = get_matched(text, channels.keys())[0]
+        chan_name = get_matched(keyword, channels.keys())[0]
         del channels[chan_name]
         self.write_channels(channels)
 
