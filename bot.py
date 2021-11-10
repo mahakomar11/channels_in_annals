@@ -15,7 +15,6 @@ buttons = [types.KeyboardButton(text=command) for command in my_commands]
 keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
 keyboard.add(*buttons)
 
-IS_SEARCH_MODE = False
 LAST_MESSAGE = None
 
 @bot.message_handler(commands=['start'])
@@ -36,7 +35,6 @@ def handle_command(message):
                                     'voice'])
 def get_message(message):
     user_id = message.from_user.id
-    global IS_SEARCH_MODE
     global LAST_MESSAGE
     if message.text == 'Инструкция':
         bot.send_message(user_id, 'Перешли мне сообщение из канала и '
@@ -54,25 +52,20 @@ def get_message(message):
         bot.send_message(user_id, display_channels(user_id), reply_markup=inline_keyboard)
     elif message.text == 'Поиск по названию':
         bot.send_message(user_id, 'Напиши ключевое слово')
-        IS_SEARCH_MODE = True
     elif message.text == 'Добавить канал вручную':
         bot.send_message(user_id, 'Пришли мне ссылку на канал')
-        IS_SEARCH_MODE = True
     elif message.text == 'Удалить канал':
         bot.send_message(user_id, 'Напиши ключевое слово')
-        IS_SEARCH_MODE = True
     elif message.text == 'Удалить все каналы' and LAST_MESSAGE != 'Удалить все каналы':
         bot.send_message(user_id, 'Каналы нельзя будет вернуть. Чтобы подтвердить удаление всех-всех каналов, нажми "Удалить все каналы" ещё раз')
     elif message.text == 'Удалить все каналы' and LAST_MESSAGE == 'Удалить все каналы':
         delete_all_channels(user_id)
         bot.send_message(user_id, 'Список каналов пуст.')
-    elif IS_SEARCH_MODE and LAST_MESSAGE == 'Поиск по названию':
+    elif LAST_MESSAGE == 'Поиск по названию':
         bot.send_message(user_id, search_channels(user_id, message.text))
-        IS_SEARCH_MODE = False
-    elif IS_SEARCH_MODE and LAST_MESSAGE == 'Добавить канал вручную':
+    elif LAST_MESSAGE == 'Добавить канал вручную':
         bot.send_message(user_id, add_channel_by_link(user_id, message.text))
-        IS_SEARCH_MODE = False
-    elif IS_SEARCH_MODE and LAST_MESSAGE == 'Удалить канал':
+    elif LAST_MESSAGE == 'Удалить канал':
         inline_keyboard = types.InlineKeyboardMarkup()
         button_yes = types.InlineKeyboardButton(text='Да',
                                                 callback_data=message.text)
@@ -83,7 +76,6 @@ def get_message(message):
         bot.send_message(user_id, search_channels(user_id, message.text, max=1))
         if answer != 'Таких каналов не найдено, попробуй другое слово.':
             bot.send_message(user_id, 'Удалить этот канал?', reply_markup=inline_keyboard)
-        IS_SEARCH_MODE = False
     elif message.forward_from_chat is None:
         bot.send_message(user_id, 'Сообщение должно быть переслано из канала.',
                          reply_markup=keyboard)
