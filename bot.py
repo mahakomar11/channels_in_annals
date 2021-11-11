@@ -3,9 +3,9 @@ from telebot import types
 from decouple import config
 from handler import UserDataHandler
 from utils import create_inline_keyboard
+from db_handler import SQLiteConnection
 
-
-bot = telebot.TeleBot(config("TOKEN"))
+DB_PATH = "channels.db"
 
 my_commands = [
     "Инструкция",
@@ -18,6 +18,8 @@ my_commands = [
 buttons = [types.KeyboardButton(text=command) for command in my_commands]
 keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
 keyboard.add(*buttons)
+
+bot = telebot.TeleBot(config("TOKEN"))
 
 
 @bot.message_handler(commands=["start"])
@@ -34,7 +36,6 @@ def handle_command(message):
             'Чтобы узнать как пользоваться, жми "Инструкция".',
             reply_markup=keyboard,
         )
-        UserDataHandler(user_id).write_channels({})
 
 
 @bot.message_handler(
@@ -50,7 +51,7 @@ def handle_command(message):
 )
 def get_message(message):
     user_id = message.from_user.id
-    user_data_handler = UserDataHandler(user_id)
+    user_data_handler = UserDataHandler(user_id, DB_PATH)
     last_message = user_data_handler.read_last_message()
     reply_markup = keyboard
 
@@ -74,18 +75,12 @@ def get_message(message):
         reply_markup = create_inline_keyboard(
             {"Сортировать по алфавиту": "sort"}
         )
-    elif (
-        message.text == "Удалить все каналы"
-        and last_message != "Удалить все каналы"
-    ):
+    elif message.text == "Удалить все каналы" and last_message != message.text:
         answer = (
             "Каналы нельзя будет вернуть. Чтобы подтвердить удаление всех-всех"
             ' каналов, нажми "Удалить все каналы" ещё раз'
         )
-    elif (
-        message.text == "Удалить все каналы"
-        and last_message == "Удалить все каналы"
-    ):
+    elif message.text == last_message == "Удалить все каналы":
         user_data_handler.delete_all_channels()
         answer = "Список каналов пуст."
     elif last_message == "Поиск по названию":
@@ -116,7 +111,7 @@ def get_message(message):
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
     user_id = call.message.chat.id
-    user_data_handler = UserDataHandler(user_id)
+    user_data_handler = UserDataHandler(user_id, DB_PATH)
     if call.data == "sort":
         answer = user_data_handler.display_channels(to_sort=True)
     elif call.data == "no":
