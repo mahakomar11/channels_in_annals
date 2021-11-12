@@ -1,4 +1,3 @@
-import json
 import re
 from telebot.types import (
     ReplyKeyboardMarkup,
@@ -34,16 +33,3 @@ def get_matched(keyword, names):
             matched.append(name)
     return matched
 
-
-if __name__ == "__main__":
-    user_id = 99649314
-    with open("channels.json", "r") as f:
-        users_channels = json.load(f)
-
-    channels = users_channels[str(user_id)]["channels"]
-    chan_names = channels.keys()
-
-    keyword = "диет"
-
-    matched = get_matched(keyword, chan_names)
-    print(matched)
