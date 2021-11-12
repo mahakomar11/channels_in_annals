@@ -5,10 +5,10 @@ import inspect
 class SQLiteConnection:
     def __init__(self, db_name) -> None:
         self.db_name = db_name
-        self.con = None
-        self.cur = None
+        self.con = sqlite3.connect(self.db_name, check_same_thread=False)
+        self.cur = self.con.cursor()
 
-    def create_last_messages(self):
+    def setup(self):
         self.cur.execute(
             """
         --sql
@@ -17,8 +17,6 @@ class SQLiteConnection:
         ;
         """
         )
-
-    def create_channels(self):
         self.cur.execute(
             """
         --sql
@@ -42,7 +40,10 @@ class SQLiteConnection:
 
         result = self.cur.fetchone()
         if result is None:
-            print(f'No user {user_id} in database. Write the last message for creating one')
+            print(
+                f"No user {user_id} in database. Write the last message for"
+                " creating one"
+            )
             return None
 
         return result[0]
@@ -122,11 +123,8 @@ class SQLiteConnection:
 
     def _decorate(self, func):
         def wrapper(*args, **kwargs):
-            self.con = sqlite3.connect(self.db_name)
-            self.cur = self.con.cursor()
             result = func(*args, **kwargs)
             self.con.commit()
-            self.con.close()
             return result
 
         return wrapper
