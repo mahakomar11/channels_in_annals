@@ -1,4 +1,3 @@
-import json
 from collections import OrderedDict
 from telebot.apihelper import ApiTelegramException
 from utils import get_matched
