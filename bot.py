@@ -1,11 +1,10 @@
 import telebot
-from telebot import types
 from decouple import config
-from handler import UserDataHandler
-from utils import create_inline_keyboard
-from db_handler import SQLiteConnection
+from db import SQLiteConnection
+from user import User
+from utils import create_reply_keyboard, create_inline_keyboard
 
-DB_PATH = "channels.db"
+db = SQLiteConnection("channels.db")
 
 my_commands = [
     "Инструкция",
@@ -15,27 +14,24 @@ my_commands = [
     "Удалить канал",
     "Удалить все каналы",
 ]
-buttons = [types.KeyboardButton(text=command) for command in my_commands]
-keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-keyboard.add(*buttons)
+keyboard = create_reply_keyboard(my_commands)
 
 bot = telebot.TeleBot(config("TOKEN"))
 
 
 @bot.message_handler(commands=["start"])
 def handle_command(message):
-    if message.text == "/start":
-        user_id = message.from_user.id
-        bot.send_message(
-            user_id,
-            'Привет, я — бот "Каналы в анналах".\n\n'
-            "Я сделан, чтобы помогать Маше меньше прокрастинировать.\n\n"
-            "Перешли мне свои каналы, и я их сохраню. "
-            "Так ты сможешь от них отписаться, "
-            "чтобы отвлекаться на них, только когда напишешь мне. "
-            'Чтобы узнать как пользоваться, жми "Инструкция".',
-            reply_markup=keyboard,
-        )
+    user_id = message.from_user.id
+    bot.send_message(
+        user_id,
+        'Привет, я — бот "Каналы в анналах".\n\n'
+        "Я сделан, чтобы помогать Маше меньше прокрастинировать.\n\n"
+        "Перешли мне свои каналы, и я их сохраню. "
+        "Так ты сможешь от них отписаться, "
+        "чтобы отвлекаться на них, только когда напишешь мне. "
+        'Чтобы узнать как пользоваться, жми "Инструкция".',
+        reply_markup=keyboard,
+    )
 
 
 @bot.message_handler(
@@ -51,8 +47,8 @@ def handle_command(message):
 )
 def get_message(message):
     user_id = message.from_user.id
-    user_data_handler = UserDataHandler(user_id, DB_PATH)
-    last_message = user_data_handler.read_last_message()
+    user = User(user_id, db)
+    last_message = user.read_last_message()
     reply_markup = keyboard
 
     if message.text == "Инструкция":
@@ -71,7 +67,7 @@ def get_message(message):
     elif message.text == "Удалить канал":
         answer = "Напиши ключевое слово"
     elif message.text == "Список каналов":
-        answer = user_data_handler.display_channels()
+        answer = user.display_channels()
         reply_markup = create_inline_keyboard(
             {"Сортировать по алфавиту": "sort"}
         )
@@ -81,14 +77,14 @@ def get_message(message):
             ' каналов, нажми "Удалить все каналы" ещё раз'
         )
     elif message.text == last_message == "Удалить все каналы":
-        user_data_handler.delete_all_channels()
+        user.delete_all_channels()
         answer = "Список каналов пуст."
     elif last_message == "Поиск по названию":
-        answer = user_data_handler.search_channels(message.text)
+        answer = user.search_channels(message.text)
     elif last_message == "Добавить канал вручную":
-        answer = user_data_handler.add_channel_by_link(message.text, bot)
+        answer = user.add_channel_by_link(message.text, bot)
     elif last_message == "Удалить канал":
-        answer = user_data_handler.search_channels(message.text, max_num=1)
+        answer = user.search_channels(message.text, max_num=1)
         if answer != "Таких каналов не найдено, попробуй другое слово.":
             answer = "Удалить этот канал?" + "\n\n" + answer
             reply_markup = create_inline_keyboard(
@@ -97,7 +93,7 @@ def get_message(message):
     elif message.forward_from_chat is None:
         answer = "Сообщение должно быть переслано из канала."
     else:
-        answer = user_data_handler.add_channel(message.forward_from_chat)
+        answer = user.add_channel(message.forward_from_chat)
 
     if message.text not in my_commands:
         last_message = ""
@@ -105,26 +101,26 @@ def get_message(message):
         last_message = message.text
 
     bot.send_message(user_id, answer, reply_markup=reply_markup)
-    user_data_handler.write_last_message(last_message)
+    user.write_last_message(last_message)
 
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
     user_id = call.message.chat.id
-    user_data_handler = UserDataHandler(user_id, DB_PATH)
+    user = User(user_id, db)
     if call.data == "sort":
-        answer = user_data_handler.display_channels(to_sort=True)
+        answer = user.display_channels(to_sort=True)
     elif call.data == "no":
         answer = "Нет так нет."
     elif isinstance(call.data, str):
-        user_data_handler.delete_matched_channel(call.data)
+        user.delete_matched_channel(call.data)
         answer = "Удалил!"
     bot.send_message(user_id, answer)
 
 
 bot.polling(none_stop=True, interval=0)
 
-# TODO: подключить бд
 # TODO: залить на сервер
 # TODO: добавить логирование
+# TODO: проверить много юзеров сразу
 # TODO: доставать из ссылки название или из пересланного сообщения ссылку

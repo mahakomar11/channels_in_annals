@@ -2,13 +2,13 @@ import json
 from collections import OrderedDict
 from telebot.apihelper import ApiTelegramException
 from utils import get_matched
-from db_handler import SQLiteConnection
+from db import SQLiteConnection
 
 
-class UserDataHandler:
-    def __init__(self, user_id: int, db_path) -> None:
+class User:
+    def __init__(self, user_id: int, db: SQLiteConnection) -> None:
         self.user_id = user_id
-        self.db = SQLiteConnection(db_path)
+        self.db = db
 
     def read_last_message(self) -> str:
         return self.db.get_last_message(self.user_id)
@@ -101,5 +101,5 @@ class UserDataHandler:
 
 
 if __name__ == "__main__":
-    user_db = UserDataHandler(4, SQLiteConnection('channels.db'))
-    user_db.write_last_message('')
+    user = User(4, SQLiteConnection('channels.db'))
+    user.write_last_message('')

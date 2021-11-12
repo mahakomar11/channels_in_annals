@@ -1,15 +1,25 @@
 import json
 import re
-from telebot import types
+from telebot.types import (
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+)
 
 
-def create_inline_keyboard(name_call_buttons: dict):
-    inline_keyboard = types.InlineKeyboardMarkup()
+def create_reply_keyboard(commands: list) -> ReplyKeyboardMarkup:
+    buttons = [KeyboardButton(text=command) for command in commands]
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add(*buttons)
+    return keyboard
+
+
+def create_inline_keyboard(name_call_buttons: dict) -> InlineKeyboardMarkup:
+    inline_keyboard = InlineKeyboardMarkup()
     buttons = []
     for name, call in name_call_buttons.items():
-        buttons.append(
-            types.InlineKeyboardButton(text=name, callback_data=call)
-        )
+        buttons.append(InlineKeyboardButton(text=name, callback_data=call))
     inline_keyboard.add(*buttons)
     return inline_keyboard
 
@@ -30,7 +40,7 @@ if __name__ == "__main__":
     with open("channels.json", "r") as f:
         users_channels = json.load(f)
 
-    channels = users_channels[str(user_id)]['channels']
+    channels = users_channels[str(user_id)]["channels"]
     chan_names = channels.keys()
 
     keyword = "диет"
