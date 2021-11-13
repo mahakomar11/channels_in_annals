@@ -5,6 +5,7 @@ from user import User
 from utils import create_reply_keyboard, create_inline_keyboard
 
 db = SQLiteConnection("channels.db")
+db.setup()
 
 my_commands = [
     "Инструкция",
@@ -120,6 +121,7 @@ def callback_inline(call):
 
 bot.polling(none_stop=True, interval=0)
 
+# TODO: завернуть всё в докер
 # TODO: залить на сервер
 # TODO: добавить логирование
 # TODO: проверить много юзеров сразу
