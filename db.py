@@ -12,7 +12,7 @@ class SQLiteConnection:
         self.cur.execute(
             """
         --sql
-        CREATE TABLE last_messages
+        CREATE TABLE IF NOT EXISTS last_messages
         (user_id INT PRIMARY KEY, last_message TEXT)
         ;
         """
@@ -20,7 +20,7 @@ class SQLiteConnection:
         self.cur.execute(
             """
         --sql
-        CREATE TABLE channels
+        CREATE TABLE IF NOT EXISTS channels
         (channel_name TEXT, channel_link TEXT, user_id INT, UNIQUE(channel_name, user_id))
         ;
         """
