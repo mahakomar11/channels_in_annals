@@ -1,5 +1,5 @@
+import os
 import telebot
-from decouple import config
 from db import SQLiteConnection
 from user import User
 from utils import create_reply_keyboard, create_inline_keyboard
@@ -17,7 +17,7 @@ my_commands = [
 ]
 keyboard = create_reply_keyboard(my_commands)
 
-bot = telebot.TeleBot(config("TOKEN"))
+bot = telebot.TeleBot(os.getenv('BOT_TOKEN'))
 
 
 @bot.message_handler(commands=["start"])
