@@ -17,14 +17,14 @@ class User:
     def write_last_message(self, last_message) -> None:
         self.db.upsert_last_message(self.user_id, last_message)
 
-    def add_channel(self, channel: dict) -> str:
-        if channel['username'] is None:
+    def add_channel(self, channel) -> str:
+        if channel.username is None:
             return "Не могу достать ссылку, вероятно канал засекречен."
 
         self.db.upsert_channel(
-            self.user_id, channel['title'], f"t.me/{channel['username']}",
+            self.user_id, channel.title, f"t.me/{channel.username}",
         )
-        return f"Добавлен канал {channel['title']}!"
+        return f"Добавлен канал {channel.title}!"
 
     def add_channel_by_link(self, message, bot) -> str:
         link = message.split(" ")[-1]
