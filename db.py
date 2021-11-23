@@ -1,112 +1,88 @@
-import sqlite3
-import inspect
+from os import getenv
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
 
-class SQLiteConnection:
-    def __init__(self, db_name) -> None:
-        self.db_name = db_name
-        self.con = sqlite3.connect(self.db_name, check_same_thread=False)
-        self.cur = self.con.cursor()
+class DB:
+    def __init__(self) -> None:
+        db_url = getenv('DATABASE_URL').split('//')[1]
+        self.session = Session(create_engine(f'postgresql+psycopg2://{db_url}'))
 
     def setup(self):
-        self.cur.execute(
-            """
-        --sql
-        CREATE TABLE IF NOT EXISTS last_messages
-        (user_id INT PRIMARY KEY, last_message TEXT)
-        ;
-        """
-        )
-        self.cur.execute(
-            """
-        --sql
-        CREATE TABLE IF NOT EXISTS channels
-        (channel_name TEXT, channel_link TEXT, user_id INT, UNIQUE(channel_name, user_id))
-        ;
-        """
-        )
+        self.session.execute("""
+        CREATE SCHEMA IF NOT EXISTS annals;
+        """)
+        self.session.execute("""
+        CREATE TABLE IF NOT EXISTS annals.last_messages
+        (user_id INT PRIMARY KEY, last_message TEXT);
+        """)
+        self.session.execute("""
+        CREATE TABLE IF NOT EXISTS annals.channels
+        (channel_name TEXT, channel_link TEXT, user_id INT, UNIQUE(channel_name, user_id));
+        """)
+        self.session.commit()
 
     def get_last_message(self, user_id):
-        self.cur.execute(
-            """
-        --sql
+        result = self.session.execute(f"""
         SELECT last_message
-        FROM last_messages
-        WHERE user_id=:user_id
+        FROM annals.last_messages
+        WHERE user_id={user_id}
         ;
-        """,
-            {"user_id": user_id},
-        )
+        """).all()
 
-        result = self.cur.fetchone()
-        if result is None:
+        if not result:
             print(
                 f"No user {user_id} in database. Write the last message for"
                 " creating one"
             )
             return None
 
-        return result[0]
+        return result[0][0]
 
     def upsert_last_message(self, user_id, last_message):
-        self.cur.execute(
-            """
-        --sql
-        INSERT INTO last_messages
-        VALUES (?, ?)
+        self.session.execute(f"""
+        INSERT INTO annals.last_messages
+        VALUES ({user_id}, '{last_message}')
         ON CONFLICT (user_id) DO UPDATE SET last_message=excluded.last_message
         ;
-        """,
-            (user_id, last_message),
-        )
+        """)
+        self.session.commit()
 
     def get_channels(self, user_id):
-        self.cur.execute(
-            """
-        --sql
+        result = self.session.execute(f"""
         SELECT channel_name, channel_link
-        FROM channels
-        WHERE user_id=:user_id
+        FROM annals.channels
+        WHERE user_id={user_id}
         ;
-        """,
-            {"user_id": user_id},
-        )
+        """).all()
 
-        return self._channels_to_dict(self.cur.fetchall())
+        return self._channels_to_dict(result)
 
     def upsert_channel(self, user_id, channel_name, channel_link):
-        self.cur.execute(
-            """
-        --sql
-        INSERT INTO channels (channel_name, channel_link, user_id)
-        VALUES (?, ?, ?)
+        self.session.execute(f"""
+        INSERT INTO annals.channels (channel_name, channel_link, user_id)
+        VALUES ('{channel_name}', '{channel_link}', {user_id})
         ON CONFLICT (channel_name, user_id) DO UPDATE SET channel_link=excluded.channel_link
         ;
-        """,
-            (channel_name, channel_link, user_id),
-        )
+        """)
+        self.session.commit()
 
     def delete_channel(self, user_id, channel_name):
-        self.cur.execute(
-            """
-        --sql
-        DELETE FROM channels
-        WHERE user_id=:user_id and channel_name=:channel_name 
+        self.session.execute(f"""
+        DELETE FROM annals.channels
+        WHERE user_id={user_id} and channel_name='{channel_name}' 
         ;
-        """,
-            {"user_id": user_id, "channel_name": channel_name},
-        )
+        """)
+        self.session.commit()
 
     def delete_all_channels(self, user_id):
-        self.cur.execute(
-            """
-        --sql
-        DELETE FROM channels
-        WHERE user_id=:user_id 
+        self.session.execute(f"""
+        DELETE FROM annals.channels
+        WHERE user_id={user_id} 
         ;
-        """,
-            {"user_id": user_id},
-        )
+        """)
+        self.session.commit()
 
     @staticmethod
     def _channels_to_dict(query_result):
@@ -115,21 +91,8 @@ class SQLiteConnection:
             channels[row[0]] = row[1]
         return channels
 
-    def __getattribute__(self, attr: str):
-        method = object.__getattribute__(self, attr)
-        if inspect.ismethod(method) and attr != "_decorate":
-            method = self._decorate(method)
-        return method
-
-    def _decorate(self, func):
-        def wrapper(*args, **kwargs):
-            result = func(*args, **kwargs)
-            self.con.commit()
-            return result
-
-        return wrapper
-
 
 if __name__ == "__main__":
-    db = SQLiteConnection("channels.db")
-    print(db.get_last_message(1))
+    db = DB()
+    db.upsert_channel(1, 'Name1', 'link1')
+    db.delete_all_channels(1)
