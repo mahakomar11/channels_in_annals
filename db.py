@@ -94,5 +94,6 @@ class DB:
 
 if __name__ == "__main__":
     db = DB()
-    db.upsert_channel(1, 'Name1', 'link1')
+    lm = db.get_last_message(2)
+    # db.upsert_channel(1, 'Name1', 'link1')
     db.delete_all_channels(1)
