@@ -32,4 +32,3 @@ def get_matched(keyword, names):
         if match is not None:
             matched.append(name)
     return matched
-

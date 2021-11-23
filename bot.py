@@ -1,10 +1,12 @@
 import os
+
 import telebot
-from db import SQLiteConnection
+
+from db import DB
 from user import User
 from utils import create_reply_keyboard, create_inline_keyboard
 
-db = SQLiteConnection("channels.db")
+db = DB()
 db.setup()
 
 my_commands = [
@@ -44,7 +46,7 @@ def handle_command(message):
         "sticker",
         "video_note",
         "voice",
-    ]
+    ],
 )
 def get_message(message):
     user_id = message.from_user.id
@@ -70,7 +72,7 @@ def get_message(message):
     elif message.text == "Список каналов":
         answer = user.display_channels()
         reply_markup = create_inline_keyboard(
-            {"Сортировать по алфавиту": "sort"}
+            {"Сортировать по алфавиту": "sort"},
         )
     elif message.text == "Удалить все каналы" and last_message != message.text:
         answer = (
@@ -89,7 +91,7 @@ def get_message(message):
         if answer != "Таких каналов не найдено, попробуй другое слово.":
             answer = "Удалить этот канал?" + "\n\n" + answer
             reply_markup = create_inline_keyboard(
-                {"Да": message.text, "Нет": "no"}
+                {"Да": message.text, "Нет": "no"},
             )
     elif message.forward_from_chat is None:
         answer = "Сообщение должно быть переслано из канала."
@@ -109,6 +111,7 @@ def get_message(message):
 def callback_inline(call):
     user_id = call.message.chat.id
     user = User(user_id, db)
+    answer = "Не понимаю..."
     if call.data == "sort":
         answer = user.display_channels(to_sort=True)
     elif call.data == "no":

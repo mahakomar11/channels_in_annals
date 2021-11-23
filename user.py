@@ -1,11 +1,13 @@
 from collections import OrderedDict
+
 from telebot.apihelper import ApiTelegramException
+
+from db import DB
 from utils import get_matched
-from db import SQLiteConnection
 
 
 class User:
-    def __init__(self, user_id: int, db: SQLiteConnection) -> None:
+    def __init__(self, user_id: int, db: DB) -> None:
         self.user_id = user_id
         self.db = db
 
@@ -16,13 +18,13 @@ class User:
         self.db.upsert_last_message(self.user_id, last_message)
 
     def add_channel(self, channel: dict) -> str:
-        if channel.username is None:
+        if channel['username'] is None:
             return "Не могу достать ссылку, вероятно канал засекречен."
 
         self.db.upsert_channel(
-            self.user_id, channel.title, f"t.me/{channel.username}"
+            self.user_id, channel['title'], f"t.me/{channel['username']}",
         )
-        return f"Добавлен канал {channel.title}!"
+        return f"Добавлен канал {channel['title']}!"
 
     def add_channel_by_link(self, message, bot) -> str:
         link = message.split(" ")[-1]
@@ -80,8 +82,9 @@ class User:
     def delete_all_channels(self) -> None:
         self.db.delete_all_channels(self.user_id)
 
+    @staticmethod
     def _create_message_from_channels(
-        self, channels, no_channels_message=None
+        channels, no_channels_message=None,
     ) -> str:
         if no_channels_message is None:
             no_channels_message = (
@@ -89,7 +92,7 @@ class User:
                 " сообщение из него."
             )
 
-        if len(channels) == 0:
+        if not channels:
             return no_channels_message
 
         channels_list = [
@@ -100,5 +103,5 @@ class User:
 
 
 if __name__ == "__main__":
-    user = User(4, SQLiteConnection('channels.db'))
+    user = User(4, DB())
     user.write_last_message('')
