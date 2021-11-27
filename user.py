@@ -21,10 +21,11 @@ class User:
         if channel.username is None:
             return "Не могу достать ссылку, вероятно канал засекречен."
 
+        link = f"t.me/{channel.username}"
         self.db.upsert_channel(
-            self.user_id, channel.title, f"t.me/{channel.username}",
+            self.user_id, channel.title, link,
         )
-        return f"Добавлен канал {channel.title}!"
+        return f"Добавлен канал {channel.title}:\n{link}"
 
     def add_channel_by_link(self, message, bot) -> str:
         link = message.split(" ")[-1]
