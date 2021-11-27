@@ -1,6 +1,7 @@
+import json
 from os import getenv
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 
@@ -41,6 +42,8 @@ class DB:
         return result[0][0]
 
     def upsert_last_message(self, user_id, last_message):
+        last_message = last_message.replace("'", "''")
+
         self.session.execute(f"""
         INSERT INTO annals.last_messages
         VALUES ({user_id}, '{last_message}')
@@ -60,6 +63,9 @@ class DB:
         return self._channels_to_dict(result)
 
     def upsert_channel(self, user_id, channel_name, channel_link):
+        channel_name = channel_name.replace("'", "''")
+        channel_link = channel_link.replace("'", "''")
+
         self.session.execute(f"""
         INSERT INTO annals.channels (channel_name, channel_link, user_id)
         VALUES ('{channel_name}', '{channel_link}', {user_id})
@@ -69,6 +75,8 @@ class DB:
         self.session.commit()
 
     def delete_channel(self, user_id, channel_name):
+        channel_name = channel_name.replace("'", "''")
+
         self.session.execute(f"""
         DELETE FROM annals.channels
         WHERE user_id={user_id} and channel_name='{channel_name}' 
@@ -94,6 +102,7 @@ class DB:
 
 if __name__ == "__main__":
     db = DB()
-    lm = db.get_last_message(2)
-    # db.upsert_channel(1, 'Name1', 'link1')
-    db.delete_all_channels(1)
+    # lm = db.get_last_message(2)
+    # db.upsert_channel(1, "Name'1", 'link1')
+    # db.delete_all_channels(1)
+    db.delete_channel(1, "Name'1")
