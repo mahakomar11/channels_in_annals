@@ -1,4 +1,3 @@
-import json
 from os import getenv
 
 from sqlalchemy import create_engine, text
@@ -8,7 +7,7 @@ from sqlalchemy.orm import Session
 class DB:
     def __init__(self) -> None:
         db_url = getenv('DATABASE_URL').split('//')[1]
-        self.session = Session(create_engine(f'postgresql+psycopg2://{db_url}'))
+        self.session = Session(create_engine(f'postgresql+psycopg2://{db_url}'), autocommit=True)
 
     def setup(self):
         self.session.execute("""
@@ -22,7 +21,6 @@ class DB:
         CREATE TABLE IF NOT EXISTS annals.channels
         (channel_name TEXT, channel_link TEXT, user_id INT, UNIQUE(channel_name, user_id));
         """)
-        self.session.commit()
 
     def get_last_message(self, user_id):
         result = self.session.execute(f"""
@@ -50,7 +48,6 @@ class DB:
         ON CONFLICT (user_id) DO UPDATE SET last_message=excluded.last_message
         ;
         """)
-        self.session.commit()
 
     def get_channels(self, user_id):
         result = self.session.execute(f"""
@@ -72,7 +69,6 @@ class DB:
         ON CONFLICT (channel_name, user_id) DO UPDATE SET channel_link=excluded.channel_link
         ;
         """)
-        self.session.commit()
 
     def delete_channel(self, user_id, channel_name):
         channel_name = channel_name.replace("'", "''")
@@ -82,7 +78,6 @@ class DB:
         WHERE user_id={user_id} and channel_name='{channel_name}' 
         ;
         """)
-        self.session.commit()
 
     def delete_all_channels(self, user_id):
         self.session.execute(f"""
@@ -90,7 +85,6 @@ class DB:
         WHERE user_id={user_id} 
         ;
         """)
-        self.session.commit()
 
     @staticmethod
     def _channels_to_dict(query_result):
