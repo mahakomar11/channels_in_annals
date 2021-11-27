@@ -97,7 +97,7 @@ class User:
             return no_channels_message
 
         channels_list = [
-            f"{title}:\n\t\t\t\t\t\t\t\t\t{link}"
+            f"{title}:\n{link}"
             for title, link in channels.items()
         ]
         return "\n".join(channels_list)
