@@ -5,6 +5,9 @@ import telebot
 from db import DB
 from user import User
 from utils import create_reply_keyboard, create_inline_keyboard
+from dotenv import load_dotenv
+
+load_dotenv()
 
 db = DB()
 db.setup()
