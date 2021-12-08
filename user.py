@@ -100,7 +100,7 @@ class User:
             f"{title}:\n{link}"
             for title, link in channels.items()
         ]
-        return "\n\n".join(channels_list)
+        return "\n".join(channels_list)
 
 
 if __name__ == "__main__":
