@@ -1,0 +1,21 @@
+version: "3"  # version of docker-compose (WTF)
+
+volumes:
+  postgres_volume:  # volume where data will be stored (volume is kinda a folder)
+
+services:
+  bot:
+    build: .  # where DOCKERFILE of this service is placed
+    restart: always  # should docker restart app when VM reboots
+    links:
+      - dbpostgres
+
+  dbpostgres:
+    image: postgres:latest
+    restart: always
+    environment:  # environmental variables
+      POSTGRES_PASSWORD: mysecretpassword  # can be moved to file
+    volumes:
+      - postgres_volume:/var/lib/postgresql/data  # default path postgres saves data in
+    ports:
+      - "5432:5432"

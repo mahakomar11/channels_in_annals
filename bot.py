@@ -129,7 +129,6 @@ def callback_inline(call):
 
 bot.polling(none_stop=True, interval=0)
 
-# TODO: завернуть всё в докер
 # TODO: залить на сервер
 # TODO: добавить логирование
 # TODO: проверить много юзеров сразу
