@@ -1,11 +1,11 @@
 import os
 
+from dotenv import load_dotenv
 import telebot
 
 from db import DB
 from user import User
 from utils import create_reply_keyboard, create_inline_keyboard
-from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -22,7 +22,7 @@ my_commands = [
 ]
 keyboard = create_reply_keyboard(my_commands)
 
-bot = telebot.TeleBot(os.getenv('BOT_TOKEN_D'))
+bot = telebot.TeleBot(os.getenv("BOT_TOKEN_D"))
 
 
 @bot.message_handler(commands=["start"])
@@ -132,5 +132,6 @@ bot.polling(none_stop=True, interval=0)
 # TODO: залить на сервер
 # TODO: импортировать дб с хероку
 # TODO: добавить логирование
+# TODO: настроить пре-коммиты
 # TODO: проверить много юзеров сразу
 # TODO: доставать из ссылки название или из пересланного сообщения ссылку

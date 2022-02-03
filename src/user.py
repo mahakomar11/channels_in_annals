@@ -23,7 +23,9 @@ class User:
 
         link = f"t.me/{channel.username}"
         self.db.upsert_channel(
-            self.user_id, channel.title, link,
+            self.user_id,
+            channel.title,
+            link,
         )
         return f"Добавлен канал {channel.title}:\n{link}"
 
@@ -70,9 +72,7 @@ class User:
 
         return self._create_message_from_channels(
             found_channels,
-            no_channels_message=(
-                "Таких каналов не найдено, попробуй другое слово."
-            ),
+            no_channels_message=("Таких каналов не найдено, попробуй другое слово."),
         )
 
     def delete_matched_channel(self, keyword) -> None:
@@ -85,7 +85,8 @@ class User:
 
     @staticmethod
     def _create_message_from_channels(
-        channels, no_channels_message=None,
+        channels,
+        no_channels_message=None,
     ) -> str:
         if no_channels_message is None:
             no_channels_message = (
@@ -96,13 +97,10 @@ class User:
         if not channels:
             return no_channels_message
 
-        channels_list = [
-            f"{title}:\n{link}"
-            for title, link in channels.items()
-        ]
+        channels_list = [f"{title}:\n{link}" for title, link in channels.items()]
         return "\n".join(channels_list)
 
 
 if __name__ == "__main__":
     user = User(4, DB())
-    user.write_last_message('')
+    user.write_last_message("")
