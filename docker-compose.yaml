@@ -9,6 +9,8 @@ services:
     restart: always  # should docker restart app when VM reboots
     links:
       - dbpostgres
+    depends_on:
+      - dbpostgres
 
   dbpostgres:
     image: postgres:latest
