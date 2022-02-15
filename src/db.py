@@ -1,15 +1,15 @@
 from os import getenv
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 
 class DB:
     def __init__(self) -> None:
-        db_url = getenv("DATABASE_URL_D").split("//")[1]
-        self.session = Session(
-            create_engine(f"postgresql+psycopg2://{db_url}"), autocommit=True
-        )
+        postgres_user = getenv("POSTGRES_USER")
+        postgres_pass = getenv("POSTGRES_PASSWORD")
+        db_url = f"postgresql+psycopg2://{postgres_user}:{postgres_pass}@dbpostgres:5432/postgres"
+        self.session = Session(create_engine(db_url), autocommit=True)
 
     def setup(self):
         self.session.execute(

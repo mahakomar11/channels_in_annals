@@ -1,4 +1,4 @@
-version: "3"  # version of docker-compose (WTF)
+version: "3"  # version of docker-compose
 
 volumes:
   postgres_volume:  # volume where data will be stored (volume is kinda a folder)
@@ -16,7 +16,8 @@ services:
     image: postgres:latest
     restart: always
     environment:  # environmental variables
-      POSTGRES_PASSWORD: mysecretpassword  # can be moved to file
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_volume:/var/lib/postgresql/data  # default path postgres saves data in
     ports:
