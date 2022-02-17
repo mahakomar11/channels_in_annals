@@ -22,7 +22,7 @@ my_commands = [
 ]
 keyboard = create_reply_keyboard(my_commands)
 
-bot = telebot.TeleBot(os.getenv("BOT_TOKEN_D"))
+bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
 
 @bot.message_handler(commands=["start"])
