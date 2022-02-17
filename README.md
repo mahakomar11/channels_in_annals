@@ -5,15 +5,25 @@
 Функционал: боту можно переслать сообщение из канала и он вытащит и сохранит ссылку. 
 Также бот умеет присылать список сохранённых каналов, сортировать их по алфавиту и проводить поиск по ключевому слову. Каналы можно удалять.
 
+Бот: @channels_in_annals_bot
+
 ## Как запустить
 
+0. Установить [docker](https://docs.docker.com/engine/install/) и [docker-compose](https://docs.docker.com/compose/install/). 
+Склонировать репозиторий.
 1. В папке проекта создать файл .env с переменными окружения: 
-* BOT_TOKEN_D - токен, который нужно запросить у @BotFather. 
-* DATABASE_URL_D=postgres://postgres:mysecretpassword@dbpostgres:5432/postgres (в будущем изменится)
+* BOT_TOKEN - токен, который нужно запросить у @BotFather.
+* POSTGRES_USER
+* POSTGRES_PASSWORD
+* POSTGRES_DB
 
-2. Запустить команду:
+2. Запустить командой:
 ```
 docker-compose up -d --build
 ```
-
 Готово!
+
+3. Остановить командой:
+```
+docker-compose down
+```
