@@ -10,7 +10,8 @@ class DB:
     def __init__(self) -> None:
         postgres_user = getenv("POSTGRES_USER")
         postgres_pass = getenv("POSTGRES_PASSWORD")
-        db_url = f"postgresql+psycopg2://{postgres_user}:{postgres_pass}@localhost:5432/postgres"
+        postgres_db = getenv('POSTGRES_DB')
+        db_url = f"postgresql+psycopg2://{postgres_user}:{postgres_pass}@dbpostgres:5432/{postgres_db}"
         self.session = Session(create_engine(db_url))
 
     def setup(self):
