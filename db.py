@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 class DB:
     def __init__(self) -> None:
-        db_url = getenv('DATABASE_URL').split('//')[1]
+        db_url = getenv('DATABASE_URL_HEROKU').split('//')[1]
         self.session = Session(create_engine(f'postgresql+psycopg2://{db_url}'), autocommit=True)
 
     def setup(self):
